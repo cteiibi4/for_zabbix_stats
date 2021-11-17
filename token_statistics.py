@@ -2,9 +2,12 @@ from time import gmtime, strftime
 import sqlite3
 import tornado.ioloop
 import tornado.web
+from tornado.log import gen_log as logger
+import logging
+logger.setLevel(logging.DEBUG)
 
 
-class MainHandler(tornado.web.RequestHandler):
+class TokenStatisticsHandler(tornado.web.RequestHandler):
     db = sqlite3.connect('token_statistics.sqlite')
     cursor = db.cursor()
 
@@ -13,13 +16,15 @@ class MainHandler(tornado.web.RequestHandler):
 
     def get(self):
         try:
-            token = self.get_argument('token')
-            cart_id = self.get_argument('cart_id')
+            token = self.get_argument('token', None)
+            cart_id = self.get_argument('cart_id', None)
             if token and cart_id:
                 self._insert_data(token, cart_id)
                 self.set_status(200)
+                logger.info("Token Stats: Add token and cart id")
             else:
                 self.set_status(400, "No token or cart_id")
+                logger.info("Token Stats: Error(No token and cart id)")
             self.finish()
         except:
             self.set_status(500)
@@ -44,7 +49,7 @@ class MainHandler(tornado.web.RequestHandler):
 
 def make_app():
     return tornado.web.Application([
-        (r"/", MainHandler),
+        (r"/", TokenStatisticsHandler),
     ])
 
 if __name__ == "__main__":
