@@ -11,9 +11,6 @@ class TokenStatisticsHandler(tornado.web.RequestHandler):
     db = sqlite3.connect('token_statistics.sqlite')
     cursor = db.cursor()
 
-    def initialize(self):
-        self._init_db()
-
     def get(self):
         try:
             token = self.get_argument('token', None)
@@ -30,17 +27,9 @@ class TokenStatisticsHandler(tornado.web.RequestHandler):
             self.set_status(500)
             self.finish()
 
-    def _init_db(self):
-        self.cursor.execute("""CREATE TABLE IF NOT EXISTS token_statistics
-                          (token TEXT,
-                          cart_id int PRIMARY_KEY,
-                          date TEXT)
-                          """)
-        self.db.commit()
-
     def _insert_data(self, token, cart_id):
         date = strftime("%Y-%m-%d %H:%M:%S", gmtime())
-        self.cursor.execute(f"""INSERT INTO token_statistics
+        self.cursor.execute(f"""REPLACE INTO token_statistics
                             (token, cart_id, date) 
                             VALUES('{token}', '{cart_id}', '{date}');
                             """)
@@ -52,7 +41,22 @@ def make_app():
         (r"/", TokenStatisticsHandler),
     ])
 
+def _init_db():
+    db = sqlite3.connect('token_statistics.sqlite')
+    cursor = db.cursor()
+    cursor.execute("""CREATE TABLE IF NOT EXISTS token_statistics
+                      (token TEXT,
+                      cart_id int,
+                      date TEXT,
+
+                      UNIQUE(token, cart_id)
+                      )
+                      """)
+    db.commit()
+
+
 if __name__ == "__main__":
+    _init_db()
     app = make_app()
     app.listen(2121)
     tornado.ioloop.IOLoop.current().start()
